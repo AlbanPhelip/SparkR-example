@@ -31,21 +31,28 @@ titanic$body <- cast(titanic$body, "double")
 printSchema(titanic)
 
 # Select one column
-showDF(select(titanic,"name"))
-head(select(titanic, titanic$name)) 
+name <- select(titanic, titanic$name)
+showDF(name, 5)
 
 # Filter and select several columns 
 rich <- filter(titanic, titanic$fare > 200)
 head(select(rich, c(rich$fare, rich$name)))
+showDF(select(rich, c(rich$fare, rich$name)), 5)
+
+# Number of people who paid their ticket more than 200$
 count(rich)
 
 # GroupBy
-test <- groupBy(titanic, titanic$age)
-age <- summarize(test, count = count(titanic$age))
-showDF(age)
+groupByAge <- groupBy(titanic, titanic$age)
+age <- summarize(groupByAge, count = count(titanic$age))
+showDF(age, 5)
 
 ageCollect <- collect(age)
-wtd.hist(ageCollect$age, weight = ageCollect$count, breaks = 16, col="lightblue")
+wtd.hist(ageCollect$age, weight = ageCollect$count, breaks = 16, col="lightblue", main = "Répartition des individus en fonction de l'âge", xlab = "Age")
 
 t <- collect(titanic)
 hist(t$age, breaks = 16, col="lightblue")
+
+# Pipeline
+library(magrittr)
+groupBy(titanic, titanic$age) %>% summarize(., count = count(titanic$age)) %>% showDF(., 5)

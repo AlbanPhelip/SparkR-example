@@ -32,24 +32,3 @@ prediction$diff <- (prediction$survived - prediction$prediction)^2
 
 precision <- 1 - sum(collect(select(prediction, "diff")))/count(test)
 precision
-
-
-# Select one column
-showDF(select(titanic,"name"))
-head(select(titanic, titanic$name)) 
-
-# Filter and select several columns 
-rich <- filter(titanic, titanic$fare > 200)
-head(select(rich, c(rich$fare, rich$name)))
-count(rich)
-
-# GroupBy
-test <- groupBy(titanic, titanic$age)
-age <- summarize(test, count = count(titanic$age))
-showDF(age)
-
-ageCollect <- collect(age)
-wtd.hist(ageCollect$age, weight = ageCollect$count, breaks = 16, col="lightblue")
-
-t <- collect(titanic)
-hist(t$age, breaks = 16, col="lightblue")
