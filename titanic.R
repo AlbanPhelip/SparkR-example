@@ -59,22 +59,40 @@ groupBy(titanic, titanic$age) %>% summarize(., count = count(titanic$age)) %>% s
 
 
 # MLlib
-# Get the important variables
-dataForGLM <- select(titanic, "fare", "age", "survived", "pclass", "sex")
+# Read train and test set
+train <- read.df(sqlContext, path="./Documents/Xebia/Articles/SparkR/SparkR-example/data_titanic_train.csv", source="com.databricks.spark.csv", header="true")
+test <- read.df(sqlContext, path="./Documents/Xebia/Articles/SparkR/SparkR-example/data_titanic_test.csv", source="com.databricks.spark.csv", header="true")
 
-# Fill the null values
-dataWithoutNull <- dataForGLM %>% fillna(., 28, "age") %>% fillna(. , 14.45, "fare")
+# Get the important variables
+dataForGlmTrain <- select(train, "fare", "age", "survived", "pclass", "sex")
+dataForGlmTest <- select(test, "fare", "age", "survived", "pclass", "sex")
+
+# Change types for training set
+dataForGlmTrain$age <- cast(dataForGlmTrain$age, "double")
+dataForGlmTrain$fare <- cast(dataForGlmTrain$fare, "double")
+dataForGlmTrain$pclass <- cast(dataForGlmTrain$pclass, "long")
+dataForGlmTrain$survived <- cast(dataForGlmTrain$survived, "long")
+
+# Change types for test set
+dataForGlmTest$age <- cast(dataForGlmTest$age, "double")
+dataForGlmTest$fare <- cast(dataForGlmTest$fare, "double")
+dataForGlmTest$pclass <- cast(dataForGlmTest$pclass, "long")
+dataForGlmTest$survived <- cast(dataForGlmTest$survived, "long")
+
+# Fill the null values by the average of the other values
+dataWithoutNullTrain <- dataForGlmTrain %>% fillna(., 28, "age") %>% fillna(. , 14.45, "fare")
+dataWithoutNullTest <- dataForGlmTest %>% fillna(., 28, "age") %>% fillna(. , 14.45, "fare")
 
 # Building the model
-model <- SparkR::glm(survived ~ sex + age + fare + pclass, family = "binomial", data = dataWithoutNull)
+model <- SparkR::glm(survived ~ sex + age + fare + pclass, family = "binomial", data = dataWithoutNullTrain)
 
 # Make the prediction
-prediction <- predict(model, newData = dataWithoutNull)
+predictionDF <- predict(model, newData = dataWithoutNullTest)
 
 # Create the variable diff : 0 if bad prediction, 1 if good prediction 
-prediction$diff <- (prediction$survived - prediction$prediction)^2
+predictionDF$diff <- (predictionDF$survived - predictionDF$prediction)^2
 
-# Compute the mean of 'diff' : comute the percentage of good prediction
-precision <- 1 - sum(collect(select(prediction, "diff")))/count(dataWithoutNull)
+# Compute the percentage of good prediction
+precision <- 1 - sum(collect(select(predictionDF, "diff")))/count(dataWithoutNullTest)
 precision
 
